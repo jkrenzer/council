@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import council.registry as registry
+from . import registry
 
 class Watcher(type):
     def __init__(cls, name, bases, clsdict):

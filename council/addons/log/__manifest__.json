@@ -1,5 +1,5 @@
 {
   "name": "log",
   "description": "Module for logging",
-  "active": false
+  "active": true
 }

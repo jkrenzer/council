@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-from . import src
+from src import log

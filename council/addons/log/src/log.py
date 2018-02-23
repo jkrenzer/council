@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import council.module as module
+import council.moduleHandling.module as module
 
 class Log(module.Class):
     _name="log"

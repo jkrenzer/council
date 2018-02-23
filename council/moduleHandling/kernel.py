@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 from glob import glob
 import os
+from pathlib import Path
+import importlib
 import json
 from jsoncomment import JsonComment
 import sys
 import pprint
 import types
 import typing
-import council.registry as registry
+from . import registry
 pp = pprint.PrettyPrinter(indent=4)
 MANIFEST_FILENAMES = ["__manifest__.json"]
 
+#TODO Make manifest into class
+
+#TODO Make module registry etc into classes
+
+#TODO change to pathlib
 def getManifest(path):
     basedir, subdirs, files = tuple(os.walk(path)) and tuple(os.walk(path))[0] or (None,(),())
     for manifestFilename in MANIFEST_FILENAMES:
@@ -27,6 +34,7 @@ def getManifest(path):
                 return manifest
     return False
 
+#TODO change to pathlib
 def isModule(path):
     if os.path.isdir(path):
         pythonFiles = [os.path.basename(filename) for filename in glob('%s/*.py' % path)]
@@ -59,19 +67,19 @@ def solveDependencies(modules):
         dependencySolver(module, resolvedModules, [])
     return resolvedModules
 
-def getModules(path: str) -> list:
+def getModules(path) -> list:
+    path = Path(path).resolve() # Get a iterable Path-object and make it absolute
     modules = []
     print("Searching for modules in path %s" % path)
-    basedir, subdirs, files = tuple(os.walk(path)) and tuple(os.walk(path))[0] or (None,(),())
+    subdirs = [p for p in path.iterdir() if p.is_dir()]
+    print("Found %i subdirectories." % len(subdirs))
     for directory in subdirs:
         print("Checking directory %s" % directory)
-        moduleDirectory = os.path.join(basedir,directory)
-        if isModule(moduleDirectory):
+        if isModule(directory):
             print("Found module in directory %s. Loading manifest..." % directory)
-            manifest = getManifest(moduleDirectory)
+            manifest = getManifest(directory)
             if manifest:
                 print("Success!")
-
                 modules.append(manifest)
                 registry.modules.update({manifest["name"]: manifest})
             else:
@@ -87,24 +95,20 @@ def getCanonicalName(module):
 def loadModules(modules):
     modules = solveDependencies(modules)
     for module in modules:
-        canonicalName = getCanonicalName(module)
-        if canonicalName not in sys.modules and module.get("_installable"):
-            moduleFile = module["_initFile"]
-            newModule = types.ModuleType(canonicalName)
-            newModule.__file__ = module["_initFile"]
-            newModule.__path__ = [module["_path"]]
-            newModule.__package__ = canonicalName
-            sys.modules[canonicalName] = newModule
-            pp.pprint(newModule)
-            exec(open(moduleFile, 'rb').read(), newModule.__dict__)
-            if canonicalName in sys.modules:
-                print("Module %s is registered as %s" % (module["name"], canonicalName))
-                registry.modules[module["name"]]["_loaded"] = True
+        canonicalName = getCanonicalName(module) #TODO Implement new finder an get rid of this function maybe?
+        moduleSpec = importlib.machinery.ModuleSpec(canonicalName, loader, *, origin=None, loader_state=None, is_package=None)
+        if module.get("_installable"):
+            path = module["_path"].parent
+            importlib.abc.FileLoader
+            if path not in sys.path:
+                print("Adding path %s to module search path." % path)
+                sys.path.append(module["_path"].parent)
             else:
-                print("Module %s NOT loadable." % module["name"])
+                print("Path %s is already in module searchpath." % path)
         else:
             print("Skipping module %s." % canonicalName)
     pp.pprint(registry.modules)
-
+    importlib.invalidate_caches()
+    
 def getInstanceOf(module):
     return instance
