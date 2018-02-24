@@ -1,6 +1,0 @@
-{
-  "name": "core",
-  "description": "Metapackage loading core-components.",
-  "depends": ["log"],
-  "active": true
-}
